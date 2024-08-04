@@ -32,40 +32,19 @@ const server = app.listen(port, () => {
 
 // Create a WebSocket server
 const WSS = new ws.WebSocketServer({ server });
-/*
-// Handle WebSocket connections when ever there is a new connection done to server ws connection will be established for eah of them
-WSS.on('connection', (connection,req) => {
-
-// We will check who all are online and send the all the online user
-// WSS.clients will give us only ids we want usernames sp we will pass a req param; from req.headers we will choose cookie (jwt token) and decript it
-
-    const cookies = req.headers.cookie;
-
-    if(cookies)
-    {
-        const tokenCookieString = cookies.split(';').find(str=>str.startsWith('token=')); // as there can be may cookies; fetch cookies for each
-        
-        if(tokenCookieString)
-        {
-            const token = tokenCookieString.split('=')[1];
-
-            if(token)
-            {
-                jwt.verify(token, process.env.JWT_SECRET, (err, userData) => {
-                    if (err) {
-                        return res.status(401).json({ error: 'User is not authorized' });
-                    }
-                    console.log(userData);
-                   // res.json(userData);
-                });
-            }
-        }
-        
-    }
-
-    });
-*/
 
 WSS.on('connection', (connection, req) => {
+
+    //Here I am creating an object where i will insert the usernames and their id
     websocketConnection(connection, req);
+
+    //convert to array
+   //console.log([...WSS.clients].map(c=>c.usernameç));
+
+   //for every client send all active clients
+   [...WSS.clients].forEach(client => {
+        client.send(JSON.stringify({
+           online : [...WSS.clients].map(c=>({userId:c.userID,username:c.username}))
+        }))
+   })
 });

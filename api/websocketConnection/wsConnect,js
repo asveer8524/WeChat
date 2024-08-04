@@ -1,7 +1,9 @@
 const jwt = require("jsonwebtoken");
 
+// Handle WebSocket connections when ever there is a new connection done to server ws connection will be established for eah of them
 
-
+// We will check who all are online and send the all the online user
+// WSS.clients will give us only ids we want usernames sp we will pass a req param; from req.headers we will choose cookie (jwt token) and decript it
 const websocketConnection = (connection, req) => {
     const cookies = req.headers.cookie;
 
@@ -27,6 +29,9 @@ const websocketConnection = (connection, req) => {
             } 
         } 
     }
+
+    
+
 };
 
 
