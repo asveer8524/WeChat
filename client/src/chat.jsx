@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import Avater from './Avatar';
+import Logo from "./Logo";
+import { UserContext } from "./UserContext";
 
 export default function Chat() {
 
@@ -8,6 +10,15 @@ export default function Chat() {
 
     // this state will store online people
     const [onlinePeople,setOnlinePeople] = useState({});
+
+    //selected userid for chat
+    const [selectedUserId,setSelectedUserId] = useState(null);
+
+    //access username of loffed in user we have used context to pass user name and id from the top class
+    const {id}=useContext(UserContext);
+    //using state to store message'
+    const [newMessageText, setNewMessageText] = useState('')
+
     //establishing websocket connection
 
     useEffect(()=>{
@@ -36,6 +47,10 @@ export default function Chat() {
         {
             showOnlinePeople(messageData.online)
         }
+        else{
+            console.log({messageData});
+        }
+
     }
 
     function showOnlinePeople(peopleArray)
@@ -43,65 +58,87 @@ export default function Chat() {
         const people = {};
 
         peopleArray.forEach(({userId,username}) => {
-            people[userId]=toTitleCase(username);
+                people[userId] = toTitleCase(username);
         });
 
         setOnlinePeople(people);
     }
 
+    //deleting our self as we cannot chat we our self so deleting it
+    const onlinePeopleExcludeOurUser = {...onlinePeople};
+    delete onlinePeopleExcludeOurUser[id];
+ 
+    
+    function sendMessage(ev)
+    {
+        ev.preventDefault();
+        console.log("sending....")
+        ws.send(JSON.stringify({
+                recipient : selectedUserId,
+                text : newMessageText
+        }));
+    }
+
     return (
         <div className="flex h-screen">
-            <div className="bg-blue-100 w-1/3 pl-4 pt-4">
-            <div
-                className="text-blue-600 font-bold flex gap-2 mb-4"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-6">
-                <path d="M4.913 2.658c2.075-.27 4.19-.408 6.337-.408 2.147 0 4.262.139 6.337.408 1.922.25 3.291 1.861 3.405 3.727a4.403 4.403 0 0 0-1.032-.211 50.89 50.89 0 0 0-8.42 0c-2.358.196-4.04 2.19-4.04 4.434v4.286a4.47 4.47 0 0 0 2.433 3.984L7.28 21.53A.75.75 0 0 1 6 21v-4.03a48.527 48.527 0 0 1-1.087-.128C2.905 16.58 1.5 14.833 1.5 12.862V6.638c0-1.97 1.405-3.718 3.413-3.979Z" />
-                <path d="M15.75 7.5c-1.376 0-2.739.057-4.086.169C10.124 7.797 9 9.103 9 10.609v4.285c0 1.507 1.128 2.814 2.67 2.94 1.243.102 2.5.157 3.768.165l2.782 2.781a.75.75 0 0 0 1.28-.53v-2.39l.33-.026c1.542-.125 2.67-1.433 2.67-2.94v-4.286c0-1.505-1.125-2.811-2.664-2.94A49.392 49.392 0 0 0 15.75 7.5Z" />
-                </svg>
-                WeChat
-            </div>
-            {Object.keys(onlinePeople).map(userId => (
-                <div 
-                    key={userId}
-                    className="border-b border-gray-100 py-2 flex items-center gap-2"
-                >
-                    <Avater
-                        username = {onlinePeople[userId]}
-                        userId = {userId}
-                    />
-                    <span>{onlinePeople[userId]}</span>
-                </div>
-            ))}
+            <div className="bg-blue-100 w-1/3 ">
+                <Logo/>
+                {Object.keys(onlinePeopleExcludeOurUser).map(userId => (
+                    <div 
+                        key={userId}
+                        //onClick={selectContact(userId)} is waring way to call
+                        //What happens: selectContact(userId) is called immediately when the component renders, and its return value (whatever selectContact returns) is assigned to onClick.
+                        //{() => selectContact(userId)} in the onClick handler, you are creating an inline arrow function. This ensures that selectContact(userId) is not called immediately when the component renders but rather when the user actually clicks on the div.
+                        onClick={()=>setSelectedUserId(userId)}
+                        className={"border-b border-gray-100 flex items-center gap-2 cursor-pointer " + (selectedUserId === userId ? 'bg-white':'')}
+                    >
+                        {
+                            selectedUserId === userId && <div className="w-2 bg-blue-400 h-12 rounded-r-md"></div>
+                        }
+                        <div className="flex items-center gap-2 py-2 pl-4">
+                        <Avater
+                            username = {onlinePeople[userId]}
+                            userId = {userId}
+                        />
+                        <span className="text-gray-800">{onlinePeople[userId]}</span>
+                        </div>
+            
+                    </div>
+                ))}
             </div>
             <div className="flex flex-col bg-blue-300 w-2/3 p-2">
-                <div className="flex-1 overflow-auto">
-                    {/* Content area where messages will be displayed */}
-                </div>
-                <div className="flex gap-2 mt-auto">
-                    <input 
-                        type="text" 
-                        placeholder="Type Your Message" 
-                        className="bg-white border p-2 flex-grow rounded-md" 
-                    />
-                    <button className="bg-blue-500 p-2 text-white rounded-md">
-                        <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            fill="none" 
-                            viewBox="0 0 24 24" 
-                            strokeWidth={1.5} 
-                            stroke="currentColor" 
-                            className="w-6 h-6"
-                        >
-                            <path 
-                                strokeLinecap="round" 
-                                strokeLinejoin="round" 
-                                d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" 
-
+                <div className="flex-1 overflow-auto"></div>
+                {
+                    !!selectedUserId && 
+                    (
+                        <form className="flex gap-2 mt-auto" onSubmit={sendMessage}>
+                            <input 
+                                value={newMessageText}
+                                onChange={ev => setNewMessageText(ev.target.value)}
+                                type="text" 
+                                placeholder="Type Your Message" 
+                                className="bg-white border p-2 flex-grow rounded-md" 
                             />
-                        </svg>
-                    </button>
-                </div>
+                            <button type="submit" className="bg-blue-500 p-2 text-white rounded-md">
+                                <svg 
+                                    xmlns="http://www.w3.org/2000/svg" 
+                                    fill="none" 
+                                    viewBox="0 0 24 24" 
+                                    strokeWidth={1.5} 
+                                    stroke="currentColor" 
+                                    className="w-6 h-6"
+                                >
+                                    <path 
+                                        strokeLinecap="round" 
+                                        strokeLinejoin="round" 
+                                        d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" 
+                                    />
+                                </svg>
+                            </button>
+                        </form>
+                    )
+                }
+                
             </div>
         </div>
     );
