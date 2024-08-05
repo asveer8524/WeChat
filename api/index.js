@@ -41,6 +41,20 @@ WSS.on('connection', (connection, req) => {
     //convert to array
    //console.log([...WSS.clients].map(c=>c.usernameç));
 
+   //when client sends a message
+    connection.on('message',(message)=>{
+        const messageData = JSON.parse(message);
+
+        const {recipient, text} = messageData;
+
+        if(recipient && text)
+        {
+            //filter base upon the recipient and now for all recipient send the text
+            [...WSS.clients].filter(c=>c.userID===recipient).forEach(c=>c.send(JSON.stringify({text})));
+        }
+
+    });
+
    //for every client send all active clients
    [...WSS.clients].forEach(client => {
         client.send(JSON.stringify({
