@@ -19,6 +19,9 @@ export default function Chat() {
     //using state to store message'
     const [newMessageText, setNewMessageText] = useState('')
 
+    //setting messages array to store all sent messages
+    const [messages,setMessages] = useState([]);
+
     //establishing websocket connection
 
     useEffect(()=>{
@@ -43,12 +46,15 @@ export default function Chat() {
     {
         const messageData= JSON.parse(ev.data);
         //console.log("New mesage",e);
+        console.log({ev,messageData});
         if('online' in messageData)
         {
             showOnlinePeople(messageData.online)
         }
         else{
-            console.log({messageData});
+         //  console.log({messageData});
+            setMessages(prev => ([...prev,{isOur:false,text:messageData.text}]));
+            
         }
 
     }
@@ -72,11 +78,12 @@ export default function Chat() {
     function sendMessage(ev)
     {
         ev.preventDefault();
-        console.log("sending....")
         ws.send(JSON.stringify({
                 recipient : selectedUserId,
                 text : newMessageText
         }));
+        setNewMessageText('');
+        setMessages(prev => ([...prev,{text:newMessageText, isOur:true}]));
     }
 
     return (
@@ -107,6 +114,15 @@ export default function Chat() {
                 ))}
             </div>
             <div className="flex flex-col bg-blue-300 w-2/3 p-2">
+                {!!selectedUserId && 
+                    (
+                        <div>
+                            {messages.map(message => (
+                                <div>{message.text}</div>
+                            ))}
+                        </div>
+                    )
+                }
                 <div className="flex-1 overflow-auto"></div>
                 {
                     !!selectedUserId && 

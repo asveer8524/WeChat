@@ -5,6 +5,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const ws = require('ws'); //web sockets
 const {websocketConnection} = require('./websocketConnection/wsConnect,js');
+const Message = require('./models/message');
 
 
 connectDB();
@@ -42,15 +43,24 @@ WSS.on('connection', (connection, req) => {
    //console.log([...WSS.clients].map(c=>c.usernameç));
 
    //when client sends a message
-    connection.on('message',(message)=>{
+    connection.on('message',async(message)=>{
         const messageData = JSON.parse(message);
 
         const {recipient, text} = messageData;
 
+        const messageDoc=await Message.create({
+            sender:connection.userID,
+            recipient, 
+            text
+        });
+
         if(recipient && text)
         {
             //filter base upon the recipient and now for all recipient send the text
-            [...WSS.clients].filter(c=>c.userID===recipient).forEach(c=>c.send(JSON.stringify({text})));
+            [...WSS.clients].filter(c=>c.userID===recipient).forEach(c=>c.send(JSON.stringify({text,
+                                                                                                sender:connection.userID,
+                                                                                                id:messageDoc._id
+                                                                                            })));
         }
 
     });
