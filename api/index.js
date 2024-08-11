@@ -59,7 +59,8 @@ WSS.on('connection', (connection, req) => {
             //filter base upon the recipient and now for all recipient send the text
             [...WSS.clients].filter(c=>c.userID===recipient).forEach(c=>c.send(JSON.stringify({text,
                                                                                                 sender:connection.userID,
-                                                                                                id:messageDoc._id
+                                                                                                id:messageDoc._id,
+                                                                                                recipient
                                                                                             })));
         }
 

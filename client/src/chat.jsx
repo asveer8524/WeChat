@@ -1,7 +1,9 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import Avater from './Avatar';
 import Logo from "./Logo";
 import { UserContext } from "./UserContext";
+import { uniqBy } from "lodash";
+import axios from "axios";
 
 export default function Chat() {
 
@@ -21,6 +23,9 @@ export default function Chat() {
 
     //setting messages array to store all sent messages
     const [messages,setMessages] = useState([]);
+
+    //auto scrolling for new conversation adding react ref
+    const divUnderMessages= useRef();
 
     //establishing websocket connection
 
@@ -51,10 +56,12 @@ export default function Chat() {
         {
             showOnlinePeople(messageData.online)
         }
-        else{
+        else if('text' in messageData)
+        {
          //  console.log({messageData});
-            setMessages(prev => ([...prev,{isOur:false,text:messageData.text}]));
-            
+            setMessages(prev => ([...prev,{
+                                        ...messageData
+                                    }]));
         }
 
     }
@@ -83,8 +90,40 @@ export default function Chat() {
                 text : newMessageText
         }));
         setNewMessageText('');
-        setMessages(prev => ([...prev,{text:newMessageText, isOur:true}]));
+        setMessages(prev => ([...prev,{text:newMessageText, 
+                                        recipient : selectedUserId,
+                                        sender : id,
+                                        id:Date.now(),
+                                        }]));
+
     }
+
+    //auto scroll the conversation window
+    useEffect(()=>{
+        const div= divUnderMessages.current;
+
+        //Purpose: It scrolls the web page or a specific part of it so that a particular div element becomes visible to the user.
+        //Smooth Scrolling: The behavior: 'smooth' part means the scrolling will happen gradually, not instantly. This creates a smooth animation effect, making the scrolling less jarring and more pleasant to watch.
+        if(div)
+        {
+            div.scrollIntoView({behavior:'smooth', block:'end'});
+        }
+    },[messages]);
+
+
+    //fetch history messages for database
+ 
+
+    useEffect(() => {
+        if (selectedUserId) {
+            console.log("Fetching messages for user ID:", selectedUserId);
+            axios.get(`/messages/${selectedUserId}`);
+        }
+    }, [selectedUserId]);
+
+    //reciver is getting same message twice so fixing that issue that is we will display only unique message 
+    //lodash js library
+    const messageWithoutDupes = uniqBy( messages,'id');
 
     return (
         <div className="flex h-screen">
@@ -114,15 +153,27 @@ export default function Chat() {
                 ))}
             </div>
             <div className="flex flex-col bg-blue-300 w-2/3 p-2">
-                {!!selectedUserId && 
-                    (
-                        <div>
-                            {messages.map(message => (
-                                <div>{message.text}</div>
-                            ))}
-                        </div>
-                    )
-                }
+            {!!selectedUserId && (
+                <div className="relative h-full">
+                    <div className="overflow-y-scroll absolute inset-0" >
+                        {messageWithoutDupes.map(message => (
+                            <div key={message.id}>
+                                <div className={(message.sender===id ? 'text-right': 'text-left')}>
+                                {/*if sender === my id then message should appear on left side as they are sent by me else on right side as sent by other */}
+                                    <div className={"text-left inline-block p-2 my-2 rounded-md text-sm " + (message.sender === id ? "bg-green-300" : "bg-teal-300")}>
+                                        Sender: {message.sender} <br/>
+                                        My ID: {id} <br/>
+                                        {message.text}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                        <div ref={divUnderMessages}></div>
+                    </div>
+                </div>
+    
+            )}
+
                 <div className="flex-1 overflow-auto"></div>
                 {
                     !!selectedUserId && 
